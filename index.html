@@ -455,36 +455,7 @@
     const monthWeeks = getMonthWeeks(new Date());
     let activeWeekKey = getCurrentWeekKey(monthWeeks);
 
-    const starterTasks = [
-      {
-        id: makeId(),
-        title: "Vistoria fina de pintura e retoques",
-        week: activeWeekKey,
-        done: false,
-        createdAt: Date.now() - 5000
-      },
-      {
-        id: makeId(),
-        title: "Teste de tomadas, interruptores e quadro",
-        week: activeWeekKey,
-        done: false,
-        createdAt: Date.now() - 4000
-      },
-      {
-        id: makeId(),
-        title: "Limpeza pos-obra para vistoria",
-        week: activeWeekKey,
-        done: false,
-        createdAt: Date.now() - 3000
-      },
-      {
-        id: makeId(),
-        title: "Separar manuais, garantias e documentacao",
-        week: activeWeekKey,
-        done: false,
-        createdAt: Date.now() - 2000
-      }
-    ];
+    const starterTasks = [];
 
     let tasks = loadTasks();
     let remoteCollection = null;
@@ -572,35 +543,53 @@
 
     async function saveTaskRemote(task) {
       if (!remoteCollection || applyingRemoteUpdate) return;
-      await setDoc(doc(remoteCollection, task.id), {
-        title: task.title,
-        week: task.week,
-        done: task.done,
-        createdAt: task.createdAt,
-        updatedAt: serverTimestamp()
-      });
-    }
-
-    async function deleteTaskRemote(id) {
-      if (!remoteCollection || applyingRemoteUpdate) return;
-      await deleteDoc(doc(remoteCollection, id));
-    }
-
-    async function replaceRemoteTasks(nextTasks) {
-      if (!remoteCollection || applyingRemoteUpdate) return;
-      const snapshot = await getDocs(remoteCollection);
-      const batch = writeBatch(getFirestore());
-      snapshot.forEach(item => batch.delete(item.ref));
-      nextTasks.forEach(task => {
-        batch.set(doc(remoteCollection, task.id), {
+      try {
+        setSyncStatus("Salvando...");
+        await setDoc(doc(remoteCollection, task.id), {
           title: task.title,
           week: task.week,
           done: task.done,
           createdAt: task.createdAt,
           updatedAt: serverTimestamp()
         });
-      });
-      await batch.commit();
+      } catch (error) {
+        setSyncStatus("Erro ao salvar no Firebase");
+        throw error;
+      }
+    }
+
+    async function deleteTaskRemote(id) {
+      if (!remoteCollection || applyingRemoteUpdate) return;
+      try {
+        setSyncStatus("Excluindo...");
+        await deleteDoc(doc(remoteCollection, id));
+      } catch (error) {
+        setSyncStatus("Erro ao excluir no Firebase");
+        throw error;
+      }
+    }
+
+    async function replaceRemoteTasks(nextTasks) {
+      if (!remoteCollection || applyingRemoteUpdate) return;
+      try {
+        setSyncStatus("Sincronizando...");
+        const snapshot = await getDocs(remoteCollection);
+        const batch = writeBatch(getFirestore());
+        snapshot.forEach(item => batch.delete(item.ref));
+        nextTasks.forEach(task => {
+          batch.set(doc(remoteCollection, task.id), {
+            title: task.title,
+            week: task.week,
+            done: task.done,
+            createdAt: task.createdAt,
+            updatedAt: serverTimestamp()
+          });
+        });
+        await batch.commit();
+      } catch (error) {
+        setSyncStatus("Erro ao sincronizar Firebase");
+        throw error;
+      }
     }
 
     async function startFirebaseSync() {
@@ -618,11 +607,6 @@
         const db = getFirestore(app);
         await signInAnonymously(auth);
         remoteCollection = collection(db, ...FIREBASE_COLLECTION_PATH);
-
-        const initialSnapshot = await getDocs(remoteCollection);
-        if (initialSnapshot.empty && tasks.length) {
-          await replaceRemoteTasks(tasks);
-        }
 
         onSnapshot(remoteCollection, snapshot => {
           applyingRemoteUpdate = true;
@@ -759,7 +743,7 @@
 
       resetForm();
       render();
-      saveTaskRemote(task);
+      saveTaskRemote(task).catch(() => render());
     });
 
     els.taskList.addEventListener("click", event => {
@@ -769,9 +753,13 @@
       if (!task) return;
 
       if (event.target.classList.contains("check")) {
+        const previousDone = task.done;
         task.done = event.target.checked;
         render();
-        saveTaskRemote(task);
+        saveTaskRemote(task).catch(() => {
+          task.done = previousDone;
+          render();
+        });
       }
 
       if (event.target.classList.contains("edit")) {
@@ -780,9 +768,13 @@
 
       if (event.target.classList.contains("remove")) {
         if (confirm("Excluir esta pendencia?")) {
+          const previousTasks = [...tasks];
           tasks = tasks.filter(item => item.id !== task.id);
           render();
-          deleteTaskRemote(task.id);
+          deleteTaskRemote(task.id).catch(() => {
+            tasks = previousTasks;
+            render();
+          });
         }
       }
     });
@@ -814,10 +806,15 @@
       const taskId = event.dataTransfer.getData("text/plain");
       const task = tasks.find(item => item.id === taskId);
       if (!task) return;
+      const previousWeek = task.week;
       task.week = tab.dataset.week;
       activeWeekKey = tab.dataset.week;
       render();
-      saveTaskRemote(task);
+      saveTaskRemote(task).catch(() => {
+        task.week = previousWeek;
+        activeWeekKey = previousWeek;
+        render();
+      });
     });
 
     els.taskList.addEventListener("dragstart", event => {
@@ -838,9 +835,13 @@
 
     document.getElementById("clearDoneBtn").addEventListener("click", () => {
       if (confirm("Remover todos os itens concluidos?")) {
+        const previousTasks = [...tasks];
         tasks = tasks.filter(task => !task.done);
         render();
-        replaceRemoteTasks(tasks);
+        replaceRemoteTasks(tasks).catch(() => {
+          tasks = previousTasks;
+          render();
+        });
       }
     });
 
@@ -851,9 +852,13 @@
       try {
         const imported = JSON.parse(await file.text());
         if (!Array.isArray(imported)) throw new Error("Formato invalido");
+        const previousTasks = [...tasks];
         tasks = imported.map(normalizeTask);
         render();
-        replaceRemoteTasks(tasks);
+        replaceRemoteTasks(tasks).catch(() => {
+          tasks = previousTasks;
+          render();
+        });
       } catch {
         alert("Nao consegui importar esse arquivo. Use um JSON exportado pelo proprio roadmap.");
       } finally {
