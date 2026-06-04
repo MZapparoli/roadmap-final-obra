@@ -420,15 +420,11 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
     import {
-      collection,
-      deleteDoc,
       doc,
-      getDocs,
       getFirestore,
       onSnapshot,
       serverTimestamp,
-      setDoc,
-      writeBatch
+      setDoc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     const STORAGE_KEY = "roadmap-final-obra-v1";
@@ -441,7 +437,7 @@
       messagingSenderId: "130034056906",
       appId: "1:130034056906:web:7dd729c8112b6820cdbe33"
     };
-    const FIREBASE_COLLECTION_PATH = ["roadmaps", "final-obra", "tasks"];
+    const FIREBASE_DOC_PATH = ["roadmaps", "final-obra"];
 
     const today = () => new Date(new Date().toDateString());
     const makeId = () => {
@@ -454,7 +450,7 @@
     const starterTasks = [];
 
     let tasks = loadTasks();
-    let remoteCollection = null;
+    let remoteDocRef = null;
     let applyingRemoteUpdate = false;
     let pendingOps = loadPendingOps();
 
@@ -561,62 +557,39 @@
     }
 
     async function flushPendingOps() {
-      if (!remoteCollection || !pendingOps.length) return;
-      const ops = [...pendingOps];
+      if (!remoteDocRef || !pendingOps.length) return;
       pendingOps = [];
       savePendingOps();
       setSyncStatus("Enviando alteracoes pendentes...");
 
       try {
-        for (const op of ops) {
-          if (op.type === "save") await writeTaskRemote(op.task);
-          if (op.type === "delete") await deleteDoc(doc(remoteCollection, op.id));
-          if (op.type === "replace") await writeAllRemote(op.tasks);
-        }
+        await writeBoardRemote(tasks);
         setSyncStatus("Online: dados compartilhados");
       } catch (error) {
-        pendingOps = [...ops, ...pendingOps];
+        pendingOps = [{ type: "replace", tasks: tasks.map(normalizeTask) }, ...pendingOps];
         savePendingOps();
         setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
         console.error(error);
       }
     }
 
-    async function writeTaskRemote(task) {
-      await setDoc(doc(remoteCollection, task.id), {
-        title: task.title,
-        week: task.week,
-        done: task.done,
-        createdAt: task.createdAt,
+    async function writeBoardRemote(nextTasks) {
+      await setDoc(remoteDocRef, {
+        tasks: nextTasks.map(normalizeTask),
         updatedAt: serverTimestamp()
-      });
-    }
-
-    async function writeAllRemote(nextTasks) {
-      const snapshot = await getDocs(remoteCollection);
-      const batch = writeBatch(getFirestore());
-      snapshot.forEach(item => batch.delete(item.ref));
-      nextTasks.forEach(task => {
-        batch.set(doc(remoteCollection, task.id), {
-          title: task.title,
-          week: task.week,
-          done: task.done,
-          createdAt: task.createdAt,
-          updatedAt: serverTimestamp()
-        });
-      });
-      await batch.commit();
+      }, { merge: true });
     }
 
     async function saveTaskRemote(task) {
       if (applyingRemoteUpdate) return;
-      if (!remoteCollection) {
+      if (!remoteDocRef) {
         queuePendingOp({ type: "save", id: task.id, task: normalizeTask(task) });
         return;
       }
       try {
         setSyncStatus("Salvando...");
-        await writeTaskRemote(task);
+        await writeBoardRemote(tasks);
+        setSyncStatus("Online: dados compartilhados");
       } catch (error) {
         setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
         console.error(error);
@@ -626,13 +599,14 @@
 
     async function deleteTaskRemote(id) {
       if (applyingRemoteUpdate) return;
-      if (!remoteCollection) {
+      if (!remoteDocRef) {
         queuePendingOp({ type: "delete", id });
         return;
       }
       try {
         setSyncStatus("Excluindo...");
-        await deleteDoc(doc(remoteCollection, id));
+        await writeBoardRemote(tasks);
+        setSyncStatus("Online: dados compartilhados");
       } catch (error) {
         setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
         console.error(error);
@@ -642,13 +616,14 @@
 
     async function replaceRemoteTasks(nextTasks) {
       if (applyingRemoteUpdate) return;
-      if (!remoteCollection) {
+      if (!remoteDocRef) {
         queuePendingOp({ type: "replace", tasks: nextTasks.map(normalizeTask) });
         return;
       }
       try {
         setSyncStatus("Sincronizando...");
-        await writeAllRemote(nextTasks);
+        await writeBoardRemote(nextTasks);
+        setSyncStatus("Online: dados compartilhados");
       } catch (error) {
         setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
         console.error(error);
@@ -670,16 +645,23 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         await signInAnonymously(auth);
-        remoteCollection = collection(db, ...FIREBASE_COLLECTION_PATH);
+        remoteDocRef = doc(db, ...FIREBASE_DOC_PATH);
         await flushPendingOps();
 
-        onSnapshot(remoteCollection, snapshot => {
+        onSnapshot(remoteDocRef, snapshot => {
           applyingRemoteUpdate = true;
-          tasks = snapshot.docs.map(item => normalizeTask({ id: item.id, ...item.data() }));
-          saveTasks();
-          render();
+          if (snapshot.exists()) {
+            tasks = Array.isArray(snapshot.data().tasks) ? snapshot.data().tasks.map(normalizeTask) : [];
+            saveTasks();
+            render();
+          } else {
+            writeBoardRemote(tasks).catch(error => {
+              setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
+              console.error(error);
+            });
+          }
           applyingRemoteUpdate = false;
-          setSyncStatus("Online: dados compartilhados");
+          setSyncStatus(`Online: dados compartilhados (${tasks.length})`);
         }, () => {
           setSyncStatus("Sem conexao com Firebase: usando copia local");
           render();

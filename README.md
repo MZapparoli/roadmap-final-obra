@@ -13,3 +13,19 @@ Depois de publicar, lembre de adicionar o dominio do GitHub Pages em:
 Exemplo:
 
 `mzapparoli.github.io`
+
+## Regras do Firestore
+
+O app salva o quadro inteiro no documento `roadmaps/final-obra`.
+
+```txt
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /roadmaps/final-obra {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
