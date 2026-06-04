@@ -400,11 +400,6 @@
           <button class="primary" type="submit" id="saveBtn">Salvar item</button>
           <button class="ghost" type="button" id="cancelEditBtn">Cancelar edicao</button>
         </form>
-        <div class="footer-tools">
-          <button class="ghost" id="importBtn" type="button">Importar</button>
-          <input class="hidden-input" id="importFile" type="file" accept="application/json">
-          <button class="danger" id="clearDoneBtn" type="button">Limpar concluidas</button>
-        </div>
         <div class="sync-line" id="syncStatus">Modo local</div>
       </aside>
 
@@ -475,7 +470,6 @@
       taskList: document.getElementById("taskList"),
       progressText: document.getElementById("progressText"),
       progressBar: document.getElementById("progressBar"),
-      importFile: document.getElementById("importFile"),
       syncStatus: document.getElementById("syncStatus")
     };
 
@@ -903,39 +897,6 @@
     });
 
     els.cancelEditBtn.addEventListener("click", resetForm);
-
-    document.getElementById("clearDoneBtn").addEventListener("click", () => {
-      if (confirm("Remover todos os itens concluidos?")) {
-        const previousTasks = [...tasks];
-        tasks = tasks.filter(task => !task.done);
-        render();
-        replaceRemoteTasks(tasks).catch(() => {
-          tasks = previousTasks;
-          render();
-        });
-      }
-    });
-
-    document.getElementById("importBtn").addEventListener("click", () => els.importFile.click());
-    els.importFile.addEventListener("change", async () => {
-      const file = els.importFile.files[0];
-      if (!file) return;
-      try {
-        const imported = JSON.parse(await file.text());
-        if (!Array.isArray(imported)) throw new Error("Formato invalido");
-        const previousTasks = [...tasks];
-        tasks = imported.map(normalizeTask);
-        render();
-        replaceRemoteTasks(tasks).catch(() => {
-          tasks = previousTasks;
-          render();
-        });
-      } catch {
-        alert("Nao consegui importar esse arquivo. Use um JSON exportado pelo proprio roadmap.");
-      } finally {
-        els.importFile.value = "";
-      }
-    });
 
     startFirebaseSync();
   </script>
