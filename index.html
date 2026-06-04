@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roadmap Final de Obra</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-2: #eef2f5;
+      --ink: #1d252d;
+      --muted: #66717c;
+      --line: #d8e0e7;
+      --blue: #2563eb;
+      --green: #15803d;
+      --amber: #b45309;
+      --red: #b91c1c;
+      --gray: #475569;
+      --focus: #0f766e;
+      --shadow: 0 12px 34px rgba(23, 37, 50, .10);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, #e9eef3 0, #f7f8fa 320px, var(--bg) 100%);
+      font-family: "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+      border-radius: 6px;
+      min-height: 40px;
+      padding: 0 14px;
+      color: var(--ink);
+      background: var(--surface-2);
+    }
+
+    button:hover { filter: brightness(.98); }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(15, 118, 110, .25);
+      outline-offset: 2px;
+    }
+
+    .app {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      display: block;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.05;
+      font-weight: 750;
+    }
+
+    .subhead {
+      margin: 0;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.45;
+    }
+
+    .primary {
+      color: #fff;
+      background: var(--blue);
+    }
+
+    .danger {
+      color: #fff;
+      background: var(--red);
+    }
+
+    .ghost {
+      color: var(--gray);
+      background: transparent;
+      border: 1px solid var(--line);
+    }
+
+    .progress-panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 8px 22px rgba(23, 37, 50, .06);
+      margin-bottom: 18px;
+    }
+
+    .progress-panel span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .progress-panel strong {
+      display: block;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .progress {
+      height: 9px;
+      border-radius: 99px;
+      background: #dbe4ec;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress i {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--focus), var(--green));
+      transition: width .2s ease;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel h2 {
+      margin: 0;
+      padding: 16px 16px 0;
+      font-size: 18px;
+    }
+
+    .form {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    input {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      grid-auto-rows: min-content;
+      padding: 14px;
+      max-height: calc(100vh - 310px);
+      min-height: 420px;
+      overflow: auto;
+    }
+
+    .weeks-panel {
+      border-bottom: 1px solid var(--line);
+      background: rgba(238, 242, 245, .65);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 14px;
+    }
+
+    .weeks-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .weeks-title h2 {
+      padding: 0;
+      font-size: 18px;
+    }
+
+    .weeks-title span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .week-tabs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+    }
+
+    .week-tab {
+      display: grid;
+      gap: 3px;
+      min-height: 58px;
+      align-content: center;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .week-tab strong {
+      font-size: 14px;
+    }
+
+    .week-tab span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .week-tab.active {
+      color: #fff;
+      border-color: var(--focus);
+      background: var(--focus);
+    }
+
+    .week-tab.active span {
+      color: rgba(255, 255, 255, .82);
+    }
+
+    .week-tab.drag-over {
+      border-color: var(--blue);
+      box-shadow: inset 0 0 0 2px rgba(37, 99, 235, .22);
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--gray);
+      border-radius: var(--radius);
+      background: #fff;
+      cursor: grab;
+      min-height: 52px;
+    }
+
+    .task:active { cursor: grabbing; }
+    .task.dragging { opacity: .55; }
+
+    .task.done {
+      background: #f6faf7;
+      border-left-color: var(--green);
+    }
+
+    .check {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      min-height: 22px;
+      margin: 0;
+      border: 2px solid #9aa8b5;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .check:checked {
+      border-color: var(--green);
+      background: var(--green);
+    }
+
+    .check:checked::after {
+      content: "OK";
+      color: #fff;
+      font-size: 8px;
+      font-weight: 800;
+    }
+
+    .task h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      width: 30px;
+      min-height: 30px;
+      padding: 0;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 280px;
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      background: #fbfcfd;
+      padding: 26px;
+    }
+
+    .footer-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 0 16px 16px;
+    }
+
+    .sync-line {
+      padding: 0 16px 14px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .hidden-input {
+      display: none;
+    }
+
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .task-list { max-height: none; }
+    }
+
+    @media (max-width: 680px) {
+      .app { padding: 14px; }
+      .task { grid-template-columns: 34px minmax(0, 1fr); }
+      .task-actions { grid-column: 2; justify-content: flex-start; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .app { width: 100%; padding: 0; }
+      .panel:first-of-type, .task-actions { display: none; }
+      .layout { display: block; }
+      .panel { box-shadow: none; border: 0; }
+      .task-list { max-height: none; overflow: visible; }
+      .task { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Roadmap Final de Obra</h1>
+        <p class="subhead">Controle vivo das pendências finais: adicione itens, marque o que foi feito, filtre por frente e acompanhe o avanço geral.</p>
+      </div>
+    </header>
+
+    <section class="progress-panel" aria-label="Progresso">
+      <span>Progresso geral</span>
+      <strong id="progressText">0%</strong>
+      <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2 id="formTitle">Nova pendencia</h2>
+        <form class="form" id="taskForm">
+          <input type="hidden" id="taskId">
+          <label>Nome
+            <input id="title" required placeholder="Ex.: Revisar pintura do hall">
+          </label>
+          <button class="primary" type="submit" id="saveBtn">Salvar item</button>
+          <button class="ghost" type="button" id="cancelEditBtn">Cancelar edicao</button>
+        </form>
+        <div class="footer-tools">
+          <button class="ghost" id="importBtn" type="button">Importar</button>
+          <input class="hidden-input" id="importFile" type="file" accept="application/json">
+          <button class="danger" id="clearDoneBtn" type="button">Limpar concluidas</button>
+        </div>
+        <div class="sync-line" id="syncStatus">Modo local</div>
+      </aside>
+
+      <section class="panel">
+        <div class="weeks-panel">
+          <div class="weeks-title">
+            <h2>Semanas</h2>
+            <span id="currentMonth"></span>
+          </div>
+          <div class="week-tabs" id="weekTabs" aria-label="Semanas do mes atual"></div>
+        </div>
+        <div class="task-list" id="taskList" aria-live="polite"></div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import {
+      collection,
+      deleteDoc,
+      doc,
+      getDocs,
+      getFirestore,
+      onSnapshot,
+      serverTimestamp,
+      setDoc,
+      writeBatch
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const STORAGE_KEY = "roadmap-final-obra-v1";
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyB6rXex0ZItDvJz8QigGS4-z_JUxpUfUOg",
+      authDomain: "roadmap-final-obra.firebaseapp.com",
+      projectId: "roadmap-final-obra",
+      storageBucket: "roadmap-final-obra.firebasestorage.app",
+      messagingSenderId: "130034056906",
+      appId: "1:130034056906:web:7dd729c8112b6820cdbe33"
+    };
+    const FIREBASE_COLLECTION_PATH = ["roadmaps", "final-obra", "tasks"];
+
+    const today = () => new Date(new Date().toDateString());
+    const makeId = () => {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return "task-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+    };
+    const monthWeeks = getMonthWeeks(new Date());
+    let activeWeekKey = getCurrentWeekKey(monthWeeks);
+
+    const starterTasks = [
+      {
+        id: makeId(),
+        title: "Vistoria fina de pintura e retoques",
+        week: activeWeekKey,
+        done: false,
+        createdAt: Date.now() - 5000
+      },
+      {
+        id: makeId(),
+        title: "Teste de tomadas, interruptores e quadro",
+        week: activeWeekKey,
+        done: false,
+        createdAt: Date.now() - 4000
+      },
+      {
+        id: makeId(),
+        title: "Limpeza pos-obra para vistoria",
+        week: activeWeekKey,
+        done: false,
+        createdAt: Date.now() - 3000
+      },
+      {
+        id: makeId(),
+        title: "Separar manuais, garantias e documentacao",
+        week: activeWeekKey,
+        done: false,
+        createdAt: Date.now() - 2000
+      }
+    ];
+
+    let tasks = loadTasks();
+    let remoteCollection = null;
+    let applyingRemoteUpdate = false;
+
+    const els = {
+      form: document.getElementById("taskForm"),
+      formTitle: document.getElementById("formTitle"),
+      taskId: document.getElementById("taskId"),
+      title: document.getElementById("title"),
+      saveBtn: document.getElementById("saveBtn"),
+      cancelEditBtn: document.getElementById("cancelEditBtn"),
+      currentMonth: document.getElementById("currentMonth"),
+      weekTabs: document.getElementById("weekTabs"),
+      taskList: document.getElementById("taskList"),
+      progressText: document.getElementById("progressText"),
+      progressBar: document.getElementById("progressBar"),
+      importFile: document.getElementById("importFile"),
+      syncStatus: document.getElementById("syncStatus")
+    };
+
+    function firebaseIsConfigured() {
+      return FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes("COLE_AQUI");
+    }
+
+    function setSyncStatus(text) {
+      els.syncStatus.textContent = text;
+    }
+
+    function normalizeTask(task) {
+      return {
+        id: task.id || makeId(),
+        title: task.title || "Item sem titulo",
+        week: monthWeeks.some(week => week.key === task.week) ? task.week : activeWeekKey,
+        done: Boolean(task.done),
+        createdAt: Number(task.createdAt) || Date.now()
+      };
+    }
+
+    function getMonthWeeks(date) {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const weeks = [];
+      let start = new Date(firstDay);
+      let index = 1;
+
+      while (start <= lastDay) {
+        const end = new Date(start);
+        end.setDate(start.getDate() + ((7 - start.getDay()) % 7));
+        if (end > lastDay) end.setTime(lastDay.getTime());
+        weeks.push({
+          key: `${year}-${String(month + 1).padStart(2, "0")}-w${index}`,
+          label: `Semana ${index}`,
+          start: new Date(start),
+          end: new Date(end)
+        });
+        start = new Date(end);
+        start.setDate(end.getDate() + 1);
+        index += 1;
+      }
+      return weeks;
+    }
+
+    function getCurrentWeekKey(weeks) {
+      const now = today();
+      const match = weeks.find(week => now >= week.start && now <= week.end);
+      return match ? match.key : weeks[0].key;
+    }
+
+    function loadTasks() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const loaded = raw ? JSON.parse(raw) : starterTasks;
+        return loaded.map(normalizeTask);
+      } catch {
+        return starterTasks;
+      }
+    }
+
+    function saveTasks() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    async function saveTaskRemote(task) {
+      if (!remoteCollection || applyingRemoteUpdate) return;
+      await setDoc(doc(remoteCollection, task.id), {
+        title: task.title,
+        week: task.week,
+        done: task.done,
+        createdAt: task.createdAt,
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    async function deleteTaskRemote(id) {
+      if (!remoteCollection || applyingRemoteUpdate) return;
+      await deleteDoc(doc(remoteCollection, id));
+    }
+
+    async function replaceRemoteTasks(nextTasks) {
+      if (!remoteCollection || applyingRemoteUpdate) return;
+      const snapshot = await getDocs(remoteCollection);
+      const batch = writeBatch(getFirestore());
+      snapshot.forEach(item => batch.delete(item.ref));
+      nextTasks.forEach(task => {
+        batch.set(doc(remoteCollection, task.id), {
+          title: task.title,
+          week: task.week,
+          done: task.done,
+          createdAt: task.createdAt,
+          updatedAt: serverTimestamp()
+        });
+      });
+      await batch.commit();
+    }
+
+    async function startFirebaseSync() {
+      if (!firebaseIsConfigured()) {
+        setSyncStatus("Modo local: preencha a config do Firebase para compartilhar");
+        render();
+        return;
+      }
+
+      try {
+        setSyncStatus("Conectando ao Firebase...");
+        const app = initializeApp(FIREBASE_CONFIG);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        await signInAnonymously(auth);
+        remoteCollection = collection(db, ...FIREBASE_COLLECTION_PATH);
+
+        const initialSnapshot = await getDocs(remoteCollection);
+        if (initialSnapshot.empty && tasks.length) {
+          await replaceRemoteTasks(tasks);
+        }
+
+        onSnapshot(remoteCollection, snapshot => {
+          applyingRemoteUpdate = true;
+          tasks = snapshot.docs.map(item => normalizeTask({ id: item.id, ...item.data() }));
+          saveTasks();
+          render();
+          applyingRemoteUpdate = false;
+          setSyncStatus("Online: dados compartilhados");
+        }, () => {
+          setSyncStatus("Sem conexao com Firebase: usando copia local");
+          render();
+        });
+      } catch {
+        setSyncStatus("Firebase nao conectado: confira config, Auth e Firestore");
+        render();
+      }
+    }
+
+    function render() {
+      saveTasks();
+      updateStats();
+      renderWeeks();
+      renderTasks();
+    }
+
+    function updateStats() {
+      const total = tasks.length;
+      const done = tasks.filter(task => task.done).length;
+      const progress = total ? Math.round((done / total) * 100) : 0;
+
+      els.progressText.textContent = progress + "%";
+      els.progressBar.style.width = progress + "%";
+    }
+
+    function getVisibleTasks() {
+      return tasks
+        .filter(task => task.week === activeWeekKey)
+        .sort((a, b) => {
+          return a.done - b.done || b.createdAt - a.createdAt;
+        });
+    }
+
+    function renderWeeks() {
+      const formatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
+      els.currentMonth.textContent = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date());
+      els.weekTabs.innerHTML = monthWeeks.map(week => {
+        const count = tasks.filter(task => task.week === week.key).length;
+        const done = tasks.filter(task => task.week === week.key && task.done).length;
+        return `
+          <button class="week-tab ${week.key === activeWeekKey ? "active" : ""}" type="button" data-week="${week.key}">
+            <strong>${week.label}</strong>
+            <span>${formatter.format(week.start)} a ${formatter.format(week.end)} · ${done}/${count}</span>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function renderTasks() {
+      const visible = getVisibleTasks();
+      if (!visible.length) {
+        els.taskList.innerHTML = '<div class="empty">Nenhum item nesta semana.</div>';
+        return;
+      }
+
+      els.taskList.innerHTML = visible.map(task => {
+        const classes = ["task"];
+        if (task.done) classes.push("done");
+
+        return `
+          <article class="${classes.join(" ")}" data-id="${task.id}" draggable="true">
+            <input class="check" type="checkbox" ${task.done ? "checked" : ""} aria-label="Marcar como concluido">
+            <div>
+              <h3>${escapeHtml(task.title)}</h3>
+            </div>
+            <div class="task-actions">
+              <button class="icon-btn edit" type="button" title="Editar">ED</button>
+              <button class="icon-btn remove" type="button" title="Excluir">X</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function resetForm() {
+      els.form.reset();
+      els.taskId.value = "";
+      els.formTitle.textContent = "Nova pendencia";
+      els.saveBtn.textContent = "Salvar item";
+    }
+
+    function fillForm(task) {
+      els.taskId.value = task.id;
+      els.title.value = task.title;
+      els.formTitle.textContent = "Editar pendencia";
+      els.saveBtn.textContent = "Atualizar item";
+      els.title.focus();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value);
+    }
+
+    els.form.addEventListener("submit", event => {
+      event.preventDefault();
+      const id = els.taskId.value || makeId();
+      const task = {
+        id,
+        title: els.title.value.trim(),
+        week: activeWeekKey,
+        done: false,
+        createdAt: Date.now()
+      };
+
+      if (!task.title) return;
+
+      const existing = tasks.findIndex(item => item.id === id);
+      if (existing >= 0) {
+        task.createdAt = tasks[existing].createdAt;
+        task.done = tasks[existing].done;
+        task.week = tasks[existing].week;
+        tasks[existing] = task;
+      } else {
+        tasks.unshift(task);
+      }
+
+      resetForm();
+      render();
+      saveTaskRemote(task);
+    });
+
+    els.taskList.addEventListener("click", event => {
+      const card = event.target.closest(".task");
+      if (!card) return;
+      const task = tasks.find(item => item.id === card.dataset.id);
+      if (!task) return;
+
+      if (event.target.classList.contains("check")) {
+        task.done = event.target.checked;
+        render();
+        saveTaskRemote(task);
+      }
+
+      if (event.target.classList.contains("edit")) {
+        fillForm(task);
+      }
+
+      if (event.target.classList.contains("remove")) {
+        if (confirm("Excluir esta pendencia?")) {
+          tasks = tasks.filter(item => item.id !== task.id);
+          render();
+          deleteTaskRemote(task.id);
+        }
+      }
+    });
+
+    els.weekTabs.addEventListener("click", event => {
+      const tab = event.target.closest(".week-tab");
+      if (!tab) return;
+      activeWeekKey = tab.dataset.week;
+      render();
+    });
+
+    els.weekTabs.addEventListener("dragover", event => {
+      const tab = event.target.closest(".week-tab");
+      if (!tab) return;
+      event.preventDefault();
+      tab.classList.add("drag-over");
+    });
+
+    els.weekTabs.addEventListener("dragleave", event => {
+      const tab = event.target.closest(".week-tab");
+      if (tab) tab.classList.remove("drag-over");
+    });
+
+    els.weekTabs.addEventListener("drop", event => {
+      const tab = event.target.closest(".week-tab");
+      if (!tab) return;
+      event.preventDefault();
+      tab.classList.remove("drag-over");
+      const taskId = event.dataTransfer.getData("text/plain");
+      const task = tasks.find(item => item.id === taskId);
+      if (!task) return;
+      task.week = tab.dataset.week;
+      activeWeekKey = tab.dataset.week;
+      render();
+      saveTaskRemote(task);
+    });
+
+    els.taskList.addEventListener("dragstart", event => {
+      const card = event.target.closest(".task");
+      if (!card) return;
+      event.dataTransfer.setData("text/plain", card.dataset.id);
+      event.dataTransfer.effectAllowed = "move";
+      card.classList.add("dragging");
+    });
+
+    els.taskList.addEventListener("dragend", event => {
+      const card = event.target.closest(".task");
+      if (card) card.classList.remove("dragging");
+      document.querySelectorAll(".week-tab.drag-over").forEach(tab => tab.classList.remove("drag-over"));
+    });
+
+    els.cancelEditBtn.addEventListener("click", resetForm);
+
+    document.getElementById("clearDoneBtn").addEventListener("click", () => {
+      if (confirm("Remover todos os itens concluidos?")) {
+        tasks = tasks.filter(task => !task.done);
+        render();
+        replaceRemoteTasks(tasks);
+      }
+    });
+
+    document.getElementById("importBtn").addEventListener("click", () => els.importFile.click());
+    els.importFile.addEventListener("change", async () => {
+      const file = els.importFile.files[0];
+      if (!file) return;
+      try {
+        const imported = JSON.parse(await file.text());
+        if (!Array.isArray(imported)) throw new Error("Formato invalido");
+        tasks = imported.map(normalizeTask);
+        render();
+        replaceRemoteTasks(tasks);
+      } catch {
+        alert("Nao consegui importar esse arquivo. Use um JSON exportado pelo proprio roadmap.");
+      } finally {
+        els.importFile.value = "";
+      }
+    });
+
+    startFirebaseSync();
+  </script>
+</body>
+</html>
