@@ -379,7 +379,7 @@
     <header>
       <div>
         <h1>Roadmap Final de Obra</h1>
-        <p class="subhead">Controle vivo das pendências finais: adicione itens, marque o que foi feito, filtre por frente e acompanhe o avanço geral.</p>
+        <p class="subhead">Controle vivo das pendências finais: adicione itens, organize por semana e marque o que foi feito.</p>
       </div>
     </header>
 
@@ -612,6 +612,7 @@
 
       try {
         setSyncStatus("Conectando ao Firebase...");
+        render();
         const app = initializeApp(FIREBASE_CONFIG);
         const auth = getAuth(app);
         const db = getFirestore(app);
