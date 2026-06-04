@@ -437,6 +437,7 @@
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     const STORAGE_KEY = "roadmap-final-obra-v1";
+    const PENDING_KEY = "roadmap-final-obra-pending-v1";
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyB6rXex0ZItDvJz8QigGS4-z_JUxpUfUOg",
       authDomain: "roadmap-final-obra.firebaseapp.com",
@@ -460,6 +461,7 @@
     let tasks = loadTasks();
     let remoteCollection = null;
     let applyingRemoteUpdate = false;
+    let pendingOps = loadPendingOps();
 
     const els = {
       form: document.getElementById("taskForm"),
@@ -483,6 +485,10 @@
 
     function setSyncStatus(text) {
       els.syncStatus.textContent = text;
+    }
+
+    function describeFirebaseError(error) {
+      return error && error.code ? error.code : "erro desconhecido";
     }
 
     function normalizeTask(task) {
@@ -541,53 +547,117 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     }
 
-    async function saveTaskRemote(task) {
-      if (!remoteCollection || applyingRemoteUpdate) return;
+    function loadPendingOps() {
       try {
-        setSyncStatus("Salvando...");
-        await setDoc(doc(remoteCollection, task.id), {
+        return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function savePendingOps() {
+      localStorage.setItem(PENDING_KEY, JSON.stringify(pendingOps));
+    }
+
+    function queuePendingOp(op) {
+      pendingOps = pendingOps.filter(item => !(item.type !== "replace" && op.type !== "replace" && item.id === op.id));
+      pendingOps.push(op);
+      savePendingOps();
+      setSyncStatus("Aguardando conexao para sincronizar");
+    }
+
+    async function flushPendingOps() {
+      if (!remoteCollection || !pendingOps.length) return;
+      const ops = [...pendingOps];
+      pendingOps = [];
+      savePendingOps();
+      setSyncStatus("Enviando alteracoes pendentes...");
+
+      try {
+        for (const op of ops) {
+          if (op.type === "save") await writeTaskRemote(op.task);
+          if (op.type === "delete") await deleteDoc(doc(remoteCollection, op.id));
+          if (op.type === "replace") await writeAllRemote(op.tasks);
+        }
+        setSyncStatus("Online: dados compartilhados");
+      } catch (error) {
+        pendingOps = [...ops, ...pendingOps];
+        savePendingOps();
+        setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
+        console.error(error);
+      }
+    }
+
+    async function writeTaskRemote(task) {
+      await setDoc(doc(remoteCollection, task.id), {
+        title: task.title,
+        week: task.week,
+        done: task.done,
+        createdAt: task.createdAt,
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    async function writeAllRemote(nextTasks) {
+      const snapshot = await getDocs(remoteCollection);
+      const batch = writeBatch(getFirestore());
+      snapshot.forEach(item => batch.delete(item.ref));
+      nextTasks.forEach(task => {
+        batch.set(doc(remoteCollection, task.id), {
           title: task.title,
           week: task.week,
           done: task.done,
           createdAt: task.createdAt,
           updatedAt: serverTimestamp()
         });
+      });
+      await batch.commit();
+    }
+
+    async function saveTaskRemote(task) {
+      if (applyingRemoteUpdate) return;
+      if (!remoteCollection) {
+        queuePendingOp({ type: "save", id: task.id, task: normalizeTask(task) });
+        return;
+      }
+      try {
+        setSyncStatus("Salvando...");
+        await writeTaskRemote(task);
       } catch (error) {
-        setSyncStatus("Erro ao salvar no Firebase");
+        setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
+        console.error(error);
         throw error;
       }
     }
 
     async function deleteTaskRemote(id) {
-      if (!remoteCollection || applyingRemoteUpdate) return;
+      if (applyingRemoteUpdate) return;
+      if (!remoteCollection) {
+        queuePendingOp({ type: "delete", id });
+        return;
+      }
       try {
         setSyncStatus("Excluindo...");
         await deleteDoc(doc(remoteCollection, id));
       } catch (error) {
-        setSyncStatus("Erro ao excluir no Firebase");
+        setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
+        console.error(error);
         throw error;
       }
     }
 
     async function replaceRemoteTasks(nextTasks) {
-      if (!remoteCollection || applyingRemoteUpdate) return;
+      if (applyingRemoteUpdate) return;
+      if (!remoteCollection) {
+        queuePendingOp({ type: "replace", tasks: nextTasks.map(normalizeTask) });
+        return;
+      }
       try {
         setSyncStatus("Sincronizando...");
-        const snapshot = await getDocs(remoteCollection);
-        const batch = writeBatch(getFirestore());
-        snapshot.forEach(item => batch.delete(item.ref));
-        nextTasks.forEach(task => {
-          batch.set(doc(remoteCollection, task.id), {
-            title: task.title,
-            week: task.week,
-            done: task.done,
-            createdAt: task.createdAt,
-            updatedAt: serverTimestamp()
-          });
-        });
-        await batch.commit();
+        await writeAllRemote(nextTasks);
       } catch (error) {
-        setSyncStatus("Erro ao sincronizar Firebase");
+        setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
+        console.error(error);
         throw error;
       }
     }
@@ -607,6 +677,7 @@
         const db = getFirestore(app);
         await signInAnonymously(auth);
         remoteCollection = collection(db, ...FIREBASE_COLLECTION_PATH);
+        await flushPendingOps();
 
         onSnapshot(remoteCollection, snapshot => {
           applyingRemoteUpdate = true;
