@@ -622,6 +622,14 @@
       }
     }
 
+    async function ensureFirestoreAccess() {
+      await setDoc(remoteDocRef, {
+        connectionTest: serverTimestamp()
+      }, { merge: true });
+      const snapshot = await getDoc(remoteDocRef);
+      if (!snapshot.exists()) throw new Error("documento nao encontrado");
+    }
+
     async function saveTaskRemote(task) {
       if (applyingRemoteUpdate) return;
       if (!remoteDocRef) {
@@ -688,6 +696,7 @@
         const db = getFirestore(app);
         await signInAnonymously(auth);
         remoteDocRef = doc(db, ...FIREBASE_DOC_PATH);
+        await ensureFirestoreAccess();
         await flushPendingOps();
 
         onSnapshot(remoteDocRef, snapshot => {
@@ -700,8 +709,9 @@
             });
           }
           setSyncStatus(syncLabel());
-        }, () => {
-          setSyncStatus("Sem conexao com Firebase: usando copia local");
+        }, error => {
+          setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
+          console.error(error);
           render();
         });
 
@@ -710,8 +720,9 @@
         document.addEventListener("visibilitychange", () => {
           if (!document.hidden) syncFromRemote();
         });
-      } catch {
-        setSyncStatus("Firebase nao conectado: confira config, Auth e Firestore");
+      } catch (error) {
+        setSyncStatus("Erro Firebase: " + describeFirebaseError(error));
+        console.error(error);
         render();
       }
     }
