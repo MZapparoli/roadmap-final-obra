@@ -481,7 +481,17 @@
     }
 
     function describeFirebaseError(error) {
-      return error && error.code ? error.code : "erro desconhecido";
+      if (error && error.code) return error.code;
+      if (error && error.message) return error.message;
+      return "erro desconhecido";
+    }
+
+    function withTimeout(promise, label, ms = 8000) {
+      let timeoutId;
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${label} demorou mais de ${Math.round(ms / 1000)}s`)), ms);
+      });
+      return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
     }
 
     function normalizeTask(task) {
@@ -623,10 +633,11 @@
     }
 
     async function ensureFirestoreAccess() {
-      await setDoc(remoteDocRef, {
+      setSyncStatus("Firebase: validando permissao do Firestore...");
+      await withTimeout(setDoc(remoteDocRef, {
         connectionTest: serverTimestamp()
-      }, { merge: true });
-      const snapshot = await getDoc(remoteDocRef);
+      }, { merge: true }), "Firestore write");
+      const snapshot = await withTimeout(getDoc(remoteDocRef), "Firestore read");
       if (!snapshot.exists()) throw new Error("documento nao encontrado");
     }
 
@@ -689,12 +700,13 @@
       }
 
       try {
-        setSyncStatus("Conectando ao Firebase...");
+        setSyncStatus("Firebase: iniciando...");
         render();
         const app = initializeApp(FIREBASE_CONFIG);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        await signInAnonymously(auth);
+        setSyncStatus("Firebase: autenticando...");
+        await withTimeout(signInAnonymously(auth), "Firebase Auth");
         remoteDocRef = doc(db, ...FIREBASE_DOC_PATH);
         await ensureFirestoreAccess();
         await flushPendingOps();
